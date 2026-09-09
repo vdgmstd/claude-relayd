@@ -2,7 +2,7 @@
 # (`^[a-z0-9_-]+ = "[^=]`) reports only an unpinned dependency, never these.
 [package]
 name = 'claude-relayd'
-version = '0.3.8'
+version = '0.4.0'
 edition = '2024'
 rust-version = '1.96'
 description = 'Keeps the VS Code panel claude process alive across window close and reload'
