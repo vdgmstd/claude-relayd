@@ -1,0 +1,78 @@
+# Started by hand from the Actions tab, never by a push or a tag: publishing is a
+# decision, not a side effect of committing.
+#
+# The version comes from Cargo.toml and nowhere else. The tag is v<version>, so
+# the two cannot drift, and a version that was already released fails the run
+# instead of overwriting it — bump Cargo.toml first.
+name: Release a Linux binary
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  gates:
+    name: Gates
+    uses: ./.github/workflows/gates.yml
+
+  linux:
+    name: Build and publish x86_64 (static)
+    needs: gates
+    runs-on: ubuntu-latest
+    env:
+      TARGET: x86_64-unknown-linux-musl
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install the pinned toolchain and the musl target
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal
+          rustup default 1.96.0
+          rustup target add "$TARGET"
+
+      - name: Install the musl linker
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      - name: Read the version and refuse one that is already released
+        id: v
+        run: |
+          version=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null 2>&1; then
+            echo "::error::v$version is already tagged. Bump version in Cargo.toml first."
+            exit 1
+          fi
+
+      - name: Build
+        run: cargo build --release --target "$TARGET"
+
+      - name: Check it is static and reports the version it was built from
+        run: |
+          bin=target/$TARGET/release/claude-relayd
+          # Rust's musl target emits a static-pie, so match on "static" either way.
+          file "$bin" | grep -q static
+          test "$("$bin" --version)" = "claude-relayd ${{ steps.v.outputs.version }}"
+
+      # A tarball, because a release asset downloaded from GitHub arrives without
+      # its executable bit and a wrapper that cannot be executed is useless.
+      - name: Package
+        run: |
+          name=claude-relayd-${{ steps.v.outputs.tag }}-$TARGET
+          install -m 755 "target/$TARGET/release/claude-relayd" "claude-relayd"
+          tar czf "$name.tar.gz" claude-relayd
+          sha256sum "$name.tar.gz" > sha256sums.txt
+          echo "ASSET=$name.tar.gz" >> "$GITHUB_ENV"
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.v.outputs.tag }}" \
+            --target "$GITHUB_SHA" \
+            --title "${{ steps.v.outputs.tag }}" \
+            --notes 'Static Linux x86_64 build. Set `claudeCode.claudeProcessWrapper` to the extracted binary; see the README.' \
+            "$ASSET" sha256sums.txt
