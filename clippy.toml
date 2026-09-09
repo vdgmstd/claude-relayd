@@ -1,0 +1,26 @@
+# Clippy thresholds and test allowances. The msrv comes from rust-version in
+# Cargo.toml, so it is not repeated here.
+
+avoid-breaking-exported-api = false
+
+# Raised from Clippy's defaults; these fire on code this project considers fine.
+too-many-arguments-threshold        = 8
+too-many-lines-threshold            = 150
+type-complexity-threshold           = 300
+cognitive-complexity-threshold      = 30
+single-char-binding-names-threshold = 4
+
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-panic-in-tests  = true
+allow-dbg-in-tests    = true
+allow-print-in-tests  = true
+
+# ".." keeps Clippy's built-in list; without it this one would replace it.
+doc-valid-idents = [
+    "..",
+    "PostgreSQL",
+    "OpenAPI",
+    "WebSocket",
+    "gRPC",
+]

@@ -1,0 +1,30 @@
+edition = "2024"
+
+max_width     = 100
+tab_spaces    = 4
+hard_tabs     = false
+newline_style = "Unix"
+
+# Raised from rustfmt's defaults, which wrap these constructs well short of max_width.
+fn_call_width                  = 70
+attr_fn_like_width             = 70
+array_width                    = 70
+chain_width                    = 70
+struct_lit_width               = 24
+struct_variant_width           = 40
+single_line_if_else_max_width  = 60
+single_line_let_else_max_width = 60
+
+use_field_init_shorthand   = true
+use_try_shorthand          = true
+remove_nested_parens       = true
+force_explicit_abi         = true
+merge_derives              = true
+match_arm_leading_pipes    = "Never"
+match_block_trailing_comma = false
+fn_params_layout           = "Tall"
+
+# A blank line ends an import group and rustfmt keeps that boundary, which is what
+# the hand-written std / external / crate grouping relies on.
+reorder_imports = true
+reorder_modules = true
