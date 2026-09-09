@@ -1,0 +1,34 @@
+# The definition of done from CLAUDE.md, run on every push and reusable by the
+# release workflow, so "green" means one thing in both places.
+name: Definition of done
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_call:
+
+jobs:
+  gates:
+    name: fmt, clippy, tests, pinned dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install the pinned toolchain
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component rustfmt,clippy
+          rustup default 1.96.0
+
+      - name: Formatting
+        run: cargo fmt --check
+
+      - name: Lints
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Tests
+        run: cargo test
+
+      - name: Every dependency pinned with =
+        run: '! grep -nE ''^[a-z0-9_-]+ = "[^=]'' Cargo.toml'
